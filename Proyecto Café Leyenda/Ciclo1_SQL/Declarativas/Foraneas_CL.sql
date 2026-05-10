@@ -1,45 +1,93 @@
 -- ============================================================
--- CAFE LEYENDA - Ciclo 1: Ventas e Inventario
--- Archivo: Foraneas.sql
--- Descripcion: Definicion de claves foraneas
+-- CAFE LEYENDA - Ciclo 1
+-- Archivo: Foraneas_CL.sql
+-- Descripcion: Malla de Integridad Referencial (FK)
 -- ============================================================
 
--- Empleado hereda de Usuario (idUsuario es PK y FK)
-ALTER TABLE Empleado ADD CONSTRAINT fk_empleado_usuario
-    FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario);
+-- HERENCIA (1:1)
+ALTER TABLE Empleado
+    ADD CONSTRAINT FK_Empleado_Usuario FOREIGN KEY (idUsuario)
+    REFERENCES Usuario(idUsuario);
 
--- Empleado pertenece a un Cargo
-ALTER TABLE Empleado ADD CONSTRAINT fk_empleado_cargo
-    FOREIGN KEY (idCargo) REFERENCES Cargo(idCargo);
+ALTER TABLE Cliente
+    ADD CONSTRAINT FK_Cliente_Usuario FOREIGN KEY (idUsuario)
+    REFERENCES Usuario(idUsuario);
 
--- Cliente hereda de Usuario (idUsuario es PK y FK)
-ALTER TABLE Cliente ADD CONSTRAINT fk_cliente_usuario
-    FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario);
+-- ORGANIZACION Y CATALOGO
+ALTER TABLE CargoEmpleado
+    ADD CONSTRAINT FK_CargoEmp_Cargo FOREIGN KEY (idCargo)
+    REFERENCES Cargo(idCargo);
 
--- Producto pertenece a una Categoria
-ALTER TABLE Producto ADD CONSTRAINT fk_producto_categoria
-    FOREIGN KEY (idCategoria) REFERENCES Categoria(idCategoria);
+ALTER TABLE CargoEmpleado
+    ADD CONSTRAINT FK_CargoEmp_Empleado FOREIGN KEY (idEmpleado)
+    REFERENCES Empleado(idUsuario);
 
--- Inventario controla un Producto (relacion 1 a 1)
-ALTER TABLE Inventario ADD CONSTRAINT fk_inventario_producto
-    FOREIGN KEY (idProducto) REFERENCES Producto(idProducto);
+ALTER TABLE Producto
+    ADD CONSTRAINT FK_Producto_Categoria FOREIGN KEY (idCategoria)
+    REFERENCES Categoria(idCategoria);
 
--- Venta es registrada por un Empleado
-ALTER TABLE Venta ADD CONSTRAINT fk_venta_empleado
-    FOREIGN KEY (idEmpleado) REFERENCES Empleado(idUsuario);
+-- INVENTARIO
+ALTER TABLE Inventario
+    ADD CONSTRAINT FK_Inventario_Producto FOREIGN KEY (idProducto)
+    REFERENCES Producto(idProducto);
 
--- Venta puede pertenecer a un Cliente (opcional)
-ALTER TABLE Venta ADD CONSTRAINT fk_venta_cliente
-    FOREIGN KEY (idCliente) REFERENCES Cliente(idUsuario);
+ALTER TABLE LoteProducto
+    ADD CONSTRAINT FK_Lote_Producto FOREIGN KEY (idProducto)
+    REFERENCES Producto(idProducto);
 
--- Venta tiene un metodo de Pago
-ALTER TABLE Venta ADD CONSTRAINT fk_venta_pago
-    FOREIGN KEY (idMetodoPago) REFERENCES Pago(idMetodoPago);
+-- COMPRAS Y PROVEEDORES
+ALTER TABLE DireccionProveedor
+    ADD CONSTRAINT FK_Direccion_Proveedor FOREIGN KEY (idProveedor)
+    REFERENCES Proveedor(idProveedor);
 
--- DetalleVenta pertenece a una Venta (composicion)
-ALTER TABLE DetalleVenta ADD CONSTRAINT fk_detalle_venta
-    FOREIGN KEY (idVenta) REFERENCES Venta(idVenta);
+ALTER TABLE Compra
+    ADD CONSTRAINT FK_Compra_Proveedor FOREIGN KEY (idProveedor)
+    REFERENCES Proveedor(idProveedor);
 
--- DetalleVenta referencia un Producto
-ALTER TABLE DetalleVenta ADD CONSTRAINT fk_detalle_producto
-    FOREIGN KEY (idProducto) REFERENCES Producto(idProducto);
+ALTER TABLE DetalleCompra
+    ADD CONSTRAINT FK_DetComp_Compra FOREIGN KEY (idCompra)
+    REFERENCES Compra(idCompra);
+
+ALTER TABLE DetalleCompra
+    ADD CONSTRAINT FK_DetComp_Producto FOREIGN KEY (idProducto)
+    REFERENCES Producto(idProducto);
+
+-- VENTAS Y PAGOS
+ALTER TABLE Venta
+    ADD CONSTRAINT FK_Venta_Empleado FOREIGN KEY (idEmpleado)
+    REFERENCES Empleado(idUsuario);
+
+ALTER TABLE Venta
+    ADD CONSTRAINT FK_Venta_Cliente FOREIGN KEY (idCliente)
+    REFERENCES Cliente(idUsuario);
+
+ALTER TABLE DetalleVenta
+    ADD CONSTRAINT FK_DetVta_Venta FOREIGN KEY (idVenta)
+    REFERENCES Venta(idVenta);
+
+ALTER TABLE DetalleVenta
+    ADD CONSTRAINT FK_DetVta_Producto FOREIGN KEY (idProducto)
+    REFERENCES Producto(idProducto);
+
+ALTER TABLE Pago
+    ADD CONSTRAINT FK_Pago_Venta FOREIGN KEY (idVenta)
+    REFERENCES Venta(idVenta);
+
+ALTER TABLE Pago
+    ADD CONSTRAINT FK_Pago_Metodo FOREIGN KEY (idMetodoPago)
+    REFERENCES MetodoPago(idMetodoPago);
+
+-- TRAZABILIDAD DE FLUJOS (MOVIMIENTOS)
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT FK_Mov_Inventario FOREIGN KEY (idInventario)
+    REFERENCES Inventario(idInventario);
+
+-- Relación Compuesta con DetalleVenta (Garantiza rastreo del renglón exacto)
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT FK_Mov_DetalleVenta FOREIGN KEY (idVenta, idProducto)
+    REFERENCES DetalleVenta(idVenta, idProducto);
+
+-- Relación Compuesta con DetalleCompra
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT FK_Mov_DetalleCompra FOREIGN KEY (idCompra, idProducto)
+    REFERENCES DetalleCompra(idCompra, idProducto);

@@ -1,65 +1,75 @@
 -- ============================================================
--- CAFE LEYENDA - Ciclo 1: Ventas e Inventario
--- Archivo: Atributos.sql
--- Descripcion: Definicion de restricciones por atributo (Tipos)
+-- CAFE LEYENDA - Ciclo 1
+-- Archivo: Atributos_CL.sql
+-- Descripcion: Capa de Integridad de Dominio (CHECK Constraints)
 -- ============================================================
 
 -- USUARIO
--- Ttelefono: 10 digitos que empiece en 3 (formato colombiano)
-ALTER TABLE Usuario ADD CONSTRAINT chk_usuario_telefono
-    CHECK (REGEXP_LIKE(telefono, '^3[0-9]{9}$'));
+ALTER TABLE Usuario
+    ADD CONSTRAINT CK_Usuario_Correo CHECK (correo LIKE '%@%.%');
 
--- Tcorreo: debe contener @ y un dominio
-ALTER TABLE Usuario ADD CONSTRAINT chk_usuario_correo
-    CHECK (REGEXP_LIKE(correo, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'));
+-- EMPLEADO
+ALTER TABLE Empleado
+    ADD CONSTRAINT CK_Empleado_Salario CHECK (salario > 0);
 
--- Tnombre: solo letras y espacios
-ALTER TABLE Usuario ADD CONSTRAINT chk_usuario_nombre
-    CHECK (REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$'));
+ALTER TABLE Empleado
+    ADD CONSTRAINT CK_Empleado_Estado CHECK (estado IN ('ACTIVO', 'INACTIVO', 'VACACIONES'));
 
--- CARGO
-ALTER TABLE Cargo ADD CONSTRAINT chk_cargo_nombre
-    CHECK (REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$'));
-
--- CATEGORIA
-ALTER TABLE Categoria ADD CONSTRAINT chk_categoria_nombre
-    CHECK (REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$'));
+-- CLIENTE
+ALTER TABLE Cliente
+    ADD CONSTRAINT CK_Cliente_Puntos CHECK (puntosLealtad >= 0);
 
 -- PRODUCTO
--- Tprecio: valor decimal positivo mayor a 0
-ALTER TABLE Producto ADD CONSTRAINT chk_producto_precio
-    CHECK (precioVenta > 0);
-
-ALTER TABLE Producto ADD CONSTRAINT chk_producto_nombre
-    CHECK (REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ]+$'));
+ALTER TABLE Producto
+    ADD CONSTRAINT CK_Producto_Precio CHECK (precioVenta >= 0);
 
 -- INVENTARIO
--- Tstock: numero entero no negativo
-ALTER TABLE Inventario ADD CONSTRAINT chk_inventario_stockActual
-    CHECK (stockActual >= 0);
+ALTER TABLE Inventario
+    ADD CONSTRAINT CK_Inv_StockPositivo CHECK (stockActual >= 0 AND stockMinimo >= 0);
 
-ALTER TABLE Inventario ADD CONSTRAINT chk_inventario_stockMinimo
-    CHECK (stockMinimo >= 0);
+ALTER TABLE Inventario
+    ADD CONSTRAINT CK_Inv_StockMax CHECK (stockMaximo >= stockMinimo);
 
--- PAGO
-ALTER TABLE Pago ADD CONSTRAINT chk_pago_nombre
-    CHECK (REGEXP_LIKE(nombre, '^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$'));
+-- LOTES
+ALTER TABLE LoteProducto
+    ADD CONSTRAINT CK_Lote_Disponible CHECK (cantidadDisponible >= 0);
 
--- VENTA
-ALTER TABLE Venta ADD CONSTRAINT chk_venta_estadoPedido
-    CHECK (estadoPedido IN ('pendiente', 'entregado'));
+ALTER TABLE LoteProducto
+    ADD CONSTRAINT CK_Lote_Fechas CHECK (fechaVencimiento >= fechaProduccion);
 
--- Thora: formato HH:MM
-ALTER TABLE Venta ADD CONSTRAINT chk_venta_hora
-    CHECK (REGEXP_LIKE(hora, '^([01][0-9]|2[0-3]):[0-5][0-9]$'));
+-- TRANSACCIONALES
+ALTER TABLE Compra
+    ADD CONSTRAINT CK_Compra_Total CHECK (total >= 0);
 
--- DETALLE VENTA
--- Tcantidad: entero positivo mayor o igual a 1
-ALTER TABLE DetalleVenta ADD CONSTRAINT chk_detalle_cantidad
-    CHECK (cantidad >= 1);
+ALTER TABLE DetalleCompra
+    ADD CONSTRAINT CK_DetComp_Cant CHECK (cantidad > 0);
 
-ALTER TABLE DetalleVenta ADD CONSTRAINT chk_detalle_precioUnitario
-    CHECK (precioUnitario > 0);
+ALTER TABLE DetalleCompra
+    ADD CONSTRAINT CK_DetComp_Prec CHECK (precioCompra >= 0);
 
-ALTER TABLE DetalleVenta ADD CONSTRAINT chk_detalle_subtotal
-    CHECK (subtotal > 0);
+ALTER TABLE Venta
+    ADD CONSTRAINT CK_Venta_Total CHECK (total >= 0);
+
+ALTER TABLE DetalleVenta
+    ADD CONSTRAINT CK_DetVta_Cant CHECK (cantidad > 0);
+
+ALTER TABLE DetalleVenta
+    ADD CONSTRAINT CK_DetVta_Prec CHECK (precioUnitario >= 0);
+
+ALTER TABLE Pago
+    ADD CONSTRAINT CK_Pago_Monto CHECK (monto > 0);
+
+-- MOVIMIENTOS INVENTARIO
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT CK_Mov_Cantidad CHECK (cantidad > 0);
+
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT CK_Mov_Tipo CHECK (tipoMovimiento IN ('ENTRADA', 'SALIDA', 'AJUSTE'));
+
+-- Restricción de exclusividad mutua para la trazabilidad condicional del movimiento
+ALTER TABLE MovimientoInventario
+    ADD CONSTRAINT CK_Mov_Exclusividad CHECK (
+        (idVenta IS NOT NULL AND idCompra IS NULL) OR 
+        (idVenta IS NULL AND idCompra IS NOT NULL) OR 
+        (idVenta IS NULL AND idCompra IS NULL)
+    );
